@@ -6,30 +6,40 @@ import time
 
 
 def main():
-    game = Game2048()
-    player = Player()
-    moves = {
+    env = Game2048()
+    policy = Player()
+    target = Player().load_state_dict(policy.state_dict())
+    env.print_board()
+    invalid_action_count = 0
+
+
+def train(env, policy, target):
+    actions = {
         0: 'up', 1: 'down', 2: 'left', 3: 'right'
     }
-    game.print_board()
-    invalid_move_count = 0
+    epsilon_start = 1.0
+    epsilon_end = 0.001
+    epsilon_decay_steps = 5000
+    total_steps = 0 
+    discount = 0.9
+    epsilon = max(epsilon_end, 
+                  epsilon_start - (epsilon_start - epsilon_end) * 
+                  (total_steps / epsilon_decay_steps))
+    lr = 0.0001
+    optimizer = torch.optim.Adam(policy.parameters(), lr=lr)
+
     while True:
+
         time.sleep(0.9)
-        move = player(game.state_tensor())
-        move = int(torch.argmax(move, dim=0))
+        q_values = policy(env.state_tensor())
+        action = int(torch.argmax(q_values, dim=0))
         
-        # Handle moves
-        if move in moves and not (game.game_over or invalid_move_count > 3):
-            if game.move(moves[move]):
-                game.print_board()
-                invalid_move_count = 0
-            else:
-                invalid_move_count +=1
-                print("Invalid move!")
-        else:
-            game.update_game_over(end_game=True)
-            game.print_board()
-            return 1
+        # Handle actions
+        env.step(actions[action])
+        env.print_board()
+        env.update_game_over(end_game=True)
+        env.print_board()
+    return
 
 
 if __name__ == "__main__":

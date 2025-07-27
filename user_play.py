@@ -47,7 +47,7 @@ def main():
         
         # Handle moves
         if key in moves and not game.is_game_over():
-            if game.move(moves[key]):
+            if game.step(moves[key]):
                 game.print_board()
             else:
                 print("Invalid move!")

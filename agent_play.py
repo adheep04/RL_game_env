@@ -8,19 +8,19 @@ import time
 def main():
     game = Game2048()
     player = Player()
-    moves = {
+    action_map = {
         0: 'up', 1: 'down', 2: 'left', 3: 'right'
     }
     game.print_board()
     invalid_move_count = 0
     while True:
         time.sleep(0.9)
-        move = player(game.state_tensor())
-        move = int(torch.argmax(move, dim=0))
+        q_values = player(game.state_tensor())
+        action = action_map[int(q_values.argmax())]
         
         # Handle moves
-        if move in moves and not (game.game_over or invalid_move_count > 3):
-            if game.move(moves[move]):
+        if not (game.game_over or invalid_move_count > 3):
+            if game.step(action):
                 game.print_board()
                 invalid_move_count = 0
             else:
@@ -37,6 +37,3 @@ if __name__ == "__main__":
         main()
     except (KeyboardInterrupt, EOFError):
         print("\nGoodbye!")
-    except ImportError:
-        print("This game requires Unix-like terminal (Linux/Mac)")
-        print("For Windows, use WSL or modify for msvcrt")

@@ -9,8 +9,6 @@ class Player(nn.Module):
             nn.Linear(64, 64),
             nn.ReLU(),
             nn.Linear(64, 4),
-            nn.ReLU(),
-            nn.Softmax(dim=0),
         )
 
     def forward(self, x):
