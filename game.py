@@ -6,17 +6,16 @@ import os
 class Game2048:
     def __init__(self, size=4):
         self.size = size
-        self.game_over = False
+        self.score = 0
         self.reset()
     
     def reset(self):
         self.board = np.zeros((self.size, self.size), dtype=int)
         self.old = np.zeros((self.size, self.size), dtype=int)
-        self.score = 0
         self._spawn_tile()
         self._spawn_tile()
 
-    def state_tensor(self):
+    def tensor(self):
         return torch.tensor(self.board).flatten().to(dtype=torch.float32)
     
     def _spawn_tile(self):
@@ -30,7 +29,6 @@ class Game2048:
         nums = [n for n in row if n > 0]
         merged = []
         i = 0
-        score_change = 
         # merge adjacents
         while i < len(nums): 
             if i + 1 < len(nums) and nums[i] == nums[i + 1]:
@@ -45,7 +43,8 @@ class Game2048:
 
     def _move(self, direction):
         self.old = self.board.copy()
-        old_score = self.score.copy()
+        # store copy of old score
+        old_score = self.score
 
         if direction == 'left':
             self.board = np.array([self._compress(row) for row in self.board])
@@ -60,43 +59,75 @@ class Game2048:
 
     def step(self, action):
         valid_move, score_change = self._move(action)
-        self.update_game_over()
         if valid_move:
+            self.invalid_moves = 0
             self._spawn_tile()
-        return self.board, self.reward(score_change), self.game_status()
-
-    def game_status(self):
-        self.update_game_over()
-        if 2048 in self.board:
-            return 1 # win condition
-        elif self.game_over:
-            return -1 # loss
         else:
-            return 0
+            self.invalid_moves += 1
+        return self.board, self.reward(score_change), self.status()
 
-    def update_game_over(self, end_game=False):
-        if not end_game:
-            if 0 in self.board:
-                self.game_over = False
-                return self.game_over
-            for i in range(self.size):
-                for j in range(self.size):
-                    val = self.board[i,j]
-                    if (j < self.size-1 and self.board[i,j+1] == val) or \
+    def status(self):
+        if 2048 in self.board:
+            return 'win' 
+        elif self.loss_condition():
+            return 'loss'
+        else:
+            return 'play'
+
+    def loss_condition(self):
+        if 0 in self.board:
+            return False
+        for i in range(self.size):
+            for j in range(self.size):
+                val = self.board[i,j]
+                if (j < self.size-1 and self.board[i,j+1] == val) or \
                     (i < self.size-1 and self.board[i+1,j] == val):
-                        self.game_over = False
-                        return 
-        self.game_over = True
+                    return False
+        return True
 
-    def reward(self, score_change):
-        return
+    def reward(self, score_change): 
+        status = self.status()
+        if status == 'play':
+            if not score_change:
+                # no merge penalty
+                return -0.3
+            else:
+                # rewarded for merges normalized by 2048
+                return float(score_change) / 2048.0 
+        elif status == 'loss':
+            # loss penalty
+            return -1
+        else:
+            # win reward
+            return 1 
 
-    def print_board(self):
+    def show(self):
         os.system('clear')
         print(f"Score: {self.score}")
+
         print("=" * 30)
-        print(self.board.astype(float))
-        if 2048 in self.board:
+        for row in self.board: 
+            print(row.astype(int), end='\n', flush=True)
+
+        if self.status() == 'win':
             print("You reached 2048!")
-        if self.game_over:
+        if self.status() == 'loss':
             print("Game Over!")
+
+    def edit(self, coords, value):
+        self.board[coords[0]][coords[1]] = value
+
+    def up(self):
+        self.step('up')
+
+    def down(self):
+        self.step('down')
+
+    def left(self):
+        self.step('left')
+
+    def right(self):
+        self.step('right')
+
+g = Game2048()
+import code; code.interact(local=locals())

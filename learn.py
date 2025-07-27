@@ -9,8 +9,9 @@ def main():
     env = Game2048()
     policy = Player()
     target = Player().load_state_dict(policy.state_dict())
-    env.print_board()
+    env.show()
     invalid_action_count = 0
+    train(env, policy, target)
 
 
 def train(env, policy, target):
@@ -31,14 +32,13 @@ def train(env, policy, target):
     while True:
 
         time.sleep(0.9)
-        q_values = policy(env.state_tensor())
-        action = int(torch.argmax(q_values, dim=0))
+        q_values = policy(env.tensor())
+        action = actions[int(torch.argmax(q_values, dim=0))]
         
         # Handle actions
-        env.step(actions[action])
-        env.print_board()
-        env.update_game_over(end_game=True)
-        env.print_board()
+        new_state, reward, status = env.step(action)
+        import code; code.interact(local=locals())
+
     return
 
 

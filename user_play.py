@@ -29,7 +29,7 @@ def main():
     
     print("2048 - Use arrow keys or WASD to play")
     print("Press 'r' to reset, 'q' to quit")
-    game.print_board()
+    game.show()
     
     while True:
         key = getch()
@@ -42,13 +42,13 @@ def main():
         elif key == 'r':
             game.reset()
             print("\nGame reset!")
-            game.print_board()
+            game.show()
             continue
         
         # Handle moves
         if key in moves and not game.is_game_over():
             if game.step(moves[key]):
-                game.print_board()
+                game.show()
             else:
                 print("Invalid move!")
         elif game.is_game_over():
