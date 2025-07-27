@@ -4,18 +4,34 @@ import torch
 import os 
 
 class Game2048:
+
+    MAP_A = {
+        'up' : 0,
+        'down' : 1,
+        'left' : 2,
+        'right' : 3,
+    }
+
+    MAP_S = {
+        'play' : 0,
+        'win' : 1,
+        'loss' : 1,
+    }
+
     def __init__(self, size=4):
         self.size = size
-        self.score = 0
         self.reset()
     
     def reset(self):
         self.board = np.zeros((self.size, self.size), dtype=int)
-        self.old = np.zeros((self.size, self.size), dtype=int)
+        self.invalid_moves = 0
+        self.score = 0
+        self.last_reward = 0
+        self.last_move = ''
         self._spawn_tile()
         self._spawn_tile()
 
-    def tensor(self):
+    def tensor(self, include_move=True):
         return torch.tensor(self.board).flatten().to(dtype=torch.float32)
     
     def _spawn_tile(self):
@@ -61,10 +77,11 @@ class Game2048:
         valid_move, score_change = self._move(action)
         if valid_move:
             self.invalid_moves = 0
+            self.last_move = action
             self._spawn_tile()
         else:
             self.invalid_moves += 1
-        return self.board, self.reward(score_change), self.status()
+        return self.old, self.MAP_A[action], self.reward(score_change), self.board, self.MAP_S[self.status()]
 
     def status(self):
         if 2048 in self.board:
@@ -88,22 +105,26 @@ class Game2048:
     def reward(self, score_change): 
         status = self.status()
         if status == 'play':
-            if not score_change:
+            if score_change == 0:
                 # no merge penalty
-                return -0.3
+                reward = -0.3
             else:
                 # rewarded for merges normalized by 2048
-                return float(score_change) / 2048.0 
+                reward = float(score_change) / 2048.0 
         elif status == 'loss':
             # loss penalty
-            return -1
+            reward = -1.0
         else:
             # win reward
-            return 1 
+            reward = 1.0
+
+        self.last_reward = reward
+        return reward
 
     def show(self):
         os.system('clear')
-        print(f"Score: {self.score}")
+        print(f"score: {self.score}, last reward: {self.last_reward}")
+        print(f"last move: {self.last_move}, total rewards: {self.score}")
 
         print("=" * 30)
         for row in self.board: 
@@ -116,18 +137,25 @@ class Game2048:
 
     def edit(self, coords, value):
         self.board[coords[0]][coords[1]] = value
-
+            
+    def __repr__(self):
+        self.show()
+        return ""
+        
     def up(self):
         self.step('up')
+        self.show()
 
     def down(self):
         self.step('down')
+        self.show()
 
     def left(self):
         self.step('left')
+        self.show()
 
     def right(self):
         self.step('right')
+        self.show()
 
 g = Game2048()
-import code; code.interact(local=locals())
